@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Diary</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .report-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #reportOutput {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+        .entry {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .entry:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Food Diary</h1>
+        <div class="form-group">
+            <label for="foodEntry">Food Entry:</label>
+            <textarea id="foodEntry" rows="4" placeholder="Enter food details (e.g., Grilled chicken, salad, water)"></textarea>
+        </div>
+        <button onclick="addEntry()">Add Entry</button>
+        
+        <h2>Generate Report</h2>
+        <div class="report-buttons">
+            <button onclick="generateReport('daily')">Daily Report</button>
+            <button onclick="generateReport('weekly')">Weekly Report</button>
+            <button onclick="generateReport('monthly')">Monthly Report</button>
+        </div>
+        
+        <h2>Entries</h2>
+        <div id="entries"></div>
+        
+        <h2>Report</h2>
+        <div id="reportOutput"></div>
+    </div>
+
+    <script>
+        // Load entries from localStorage on page load
+        document.addEventListener('DOMContentLoaded', displayEntries);
+
+        function addEntry() {
+            const foodEntry = document.getElementById('foodEntry').value.trim();
+            if (!foodEntry) {
+                alert('Please enter food details.');
+                return;
+            }
+
+            const now = new Date();
+            const entry = {
+                id: Date.now(),
+                food: foodEntry,
+                date: now.toISOString()
+            };
+
+            // Save to localStorage
+            let entries = JSON.parse(localStorage.getItem('foodEntries')) || [];
+            entries.push(entry);
+            localStorage.setItem('foodEntries', JSON.stringify(entries));
+
+            // Clear input and refresh entries
+            document.getElementById('foodEntry').value = '';
+            displayEntries();
+        }
+
+        function displayEntries() {
+            const entriesDiv = document.getElementById('entries');
+            let entries = JSON.parse(localStorage.getItem('foodEntries')) || [];
+            entriesDiv.innerHTML = '';
+
+            entries.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date descending
+
+            entries.forEach(entry => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'entry';
+                const date = new Date(entry.date);
+                entryDiv.innerHTML = `
+                    <strong>${date.toLocaleString()}</strong><br>
+                    ${entry.food.replace(/\n/g, '<br>')}
+                `;
+                entriesDiv.appendChild(entryDiv);
+            });
+        }
+
+        function generateReport(type) {
+            let entries = JSON.parse(localStorage.getItem('foodEntries')) || [];
+            const now = new Date();
+            let startDate;
+
+            if (type === 'daily') {
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            } else if (type === 'weekly') {
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+            } else if (type === 'monthly') {
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            }
+
+            const filteredEntries = entries.filter(entry => {
+                const entryDate = new Date(entry.date);
+                return entryDate >= startDate && entryDate <= now;
+            });
+
+            // Generate report
+            const reportDiv = document.getElementById('reportOutput');
+            reportDiv.innerHTML = `<h3>${type.charAt(0).toUpperCase() + type.slice(1)} Report</h3>`;
+            if (filteredEntries.length === 0) {
+                reportDiv.innerHTML += '<p>No entries found for this period.</p>';
+                return;
+            }
+
+            filteredEntries.sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending for report
+
+            filteredEntries.forEach(entry => {
+                const date = new Date(entry.date);
+                reportDiv.innerHTML += `
+                    <div class="entry">
+                        <strong>${date.toLocaleString()}</strong><br>
+                        ${entry.food.replace(/\n/g, '<br>')}
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
